@@ -1,0 +1,74 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Report</title>
+    <style>
+        body{
+            font-family: Verdana, sans-serif;
+            text-align: center;
+        }
+        table{
+            border-collapse: collapse;
+        }
+        tr, td, th{
+            border: 1px solid black;
+            text-align: center;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{image_header}}</h1>
+    <img src="{{graph}}" width="850px">
+    <h2>{{years_table_header}}</h2>
+    <table>
+        <tr>
+            {% for label in years_table_labels %}
+            <th>{{label}}</th>
+            {% endfor %}
+        </tr>
+        {% for year in years %}
+        <tr>
+            <td>{{year}}</td>
+            <td>{{year_salary_dynamics[year]}}</td>
+            <td>{{year_salary_dynamics_for_prof[year]}}</td>
+            <td>{{num_of_vacancies_per_year[year]}}</td>
+            <td>{{num_of_vacancies_per_year_for_prof[year]}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <div>
+        <h2>{{areas_table_header}}</h2>
+        <div style="display: inline-block">
+            <table>
+                <tr>
+                    {% for label in area_salaries_table_labels %}
+                    <th>{{label}}</th>
+                    {% endfor %}
+                </tr>
+                {% for area in areas_for_salaries %}
+                    <tr>
+                        <td>{{area}}</td>
+                        <td>{{salary_levels_of_areas[area]}}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div style="display: inline-block">
+            <table>
+                <tr>
+                    {% for label in area_fracs_table_labels %}
+                    <th>{{label}}</th>
+                    {% endfor %}
+                </tr>
+                {% for area in vacancy_fractions_of_areas %}
+                    <tr>
+                        <td>{{area}}</td>
+                        <td>{{vacancy_fractions_of_areas[area]}}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</body>
+</html>
