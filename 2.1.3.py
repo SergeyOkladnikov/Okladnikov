@@ -8,7 +8,7 @@ from prettytable import PrettyTable
 from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pyplot
 import math
 from jinja2 import Environment, FileSystemLoader
 import pdfkit
@@ -545,7 +545,7 @@ class Report:
             salary_levels_of_areas,
             vacancy_fractions_of_areas
     ):
-        fig = plt.figure()
+        fig = pyplot.figure()
 
         year_salary_graph = fig.add_subplot(2, 2, 1)
         year_count_graph = fig.add_subplot(2, 2, 2)
@@ -588,8 +588,8 @@ class Report:
         city_frac_graph.pie(list(result_dic.values()), labels=labels, textprops={'fontsize': 6})
         city_frac_graph.axis('scaled')
         city_frac_graph.set_title("Доля вакансий по городам")
-        plt.tight_layout()
-        plt.savefig('graph.png', dpi=300)
+        pyplot.tight_layout()
+        pyplot.savefig('graph.png', dpi=300)
 
     @classmethod
     def generate_pdf(
