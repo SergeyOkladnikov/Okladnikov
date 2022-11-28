@@ -8,7 +8,7 @@ from prettytable import PrettyTable
 from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side
 import numpy as np
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as pyplot
 import math
 from jinja2 import Environment, FileSystemLoader
 import pdfkit
@@ -28,8 +28,8 @@ class Dicts:
         'salary_currency': 'Идентификатор валюты оклада',
         'area_name': 'Название региона',
         'published_at': 'Дата и время публикации вакансии',
-        'FALSE': 'Нет',
         'TRUE': 'Да',
+        'FALSE': 'Нет',
         'False': 'Нет',
         'True': 'Да',
         'noExperience': 'Нет опыта',
@@ -545,7 +545,7 @@ class Report:
             salary_levels_of_areas,
             vacancy_fractions_of_areas
     ):
-        fig = plot.figure()
+        fig = pyplot.figure()
 
         year_salary_graph = fig.add_subplot(2, 2, 1)
         year_count_graph = fig.add_subplot(2, 2, 2)
@@ -588,8 +588,8 @@ class Report:
         city_frac_graph.pie(list(result_dic.values()), labels=labels, textprops={'fontsize': 6})
         city_frac_graph.axis('scaled')
         city_frac_graph.set_title("Доля вакансий по городам")
-        plot.tight_layout()
-        plot.savefig('graph.png', dpi=300)
+        pyplot.tight_layout()
+        pyplot.savefig('graph.png', dpi=300)
 
     @classmethod
     def generate_pdf(
