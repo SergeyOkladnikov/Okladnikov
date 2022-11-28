@@ -2,6 +2,9 @@ import csv
 import re
 from datetime import datetime
 from itertools import islice
+import os
+
+from prettytable import PrettyTable
 from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side
 import numpy as np
@@ -12,6 +15,39 @@ import pdfkit
 
 
 class Dicts:
+    dic_naming = {
+        'name': 'Название',
+        'description': 'Описание',
+        'key_skills': 'Навыки',
+        'experience_id': 'Опыт работы',
+        'premium': 'Премиум-вакансия',
+        'employer_name': 'Компания',
+        'salary_from': 'Нижняя граница вилки оклада',
+        'salary_to': 'Верхняя граница вилки оклада',
+        'salary_gross': 'Оклад указан до вычета налогов',
+        'salary_currency': 'Идентификатор валюты оклада',
+        'area_name': 'Название региона',
+        'published_at': 'Дата и время публикации вакансии',
+        'False': 'Нет',
+        'True': 'Да',
+        'FALSE': 'Нет',
+        'TRUE': 'Да',
+        'noExperience': 'Нет опыта',
+        'between1And3': 'От 1 года до 3 лет',
+        'between3And6': 'От 3 до 6 лет',
+        'moreThan6': 'Более 6 лет',
+        'AZN': 'Манаты',
+        'BYR': 'Белорусские рубли',
+        'EUR': 'Евро',
+        'GEL': 'Грузинский лари',
+        'KGS': 'Киргизский сом',
+        'KZT': 'Тенге',
+        'RUR': 'Рубли',
+        'UAH': 'Гривны',
+        'USD': 'Доллары',
+        'UZS': 'Узбекский сум'
+    }
+
     currency_to_rub = {
         "AZN": 35.68,
         "BYR": 23.91,
@@ -25,8 +61,35 @@ class Dicts:
         "UZS": 0.0055,
     }
 
+    experience_in_numbers = {
+        'noExperience': 0,
+        'between1And3': 3,
+        'between3And6': 6,
+        'moreThan6': 7,
+    }
+
 
 class Utils:
+    @staticmethod
+    def cut_string(string):
+        if string is None:
+            return None
+        if len(string) > 100:
+            return string[0: 100] + '...'
+        else:
+            return string
+
+    @staticmethod
+    def format_num_string(num):
+        num = Utils.cut_frac(num)
+        num = num[::-1]
+        return ' '.join(num[i:i + 3] for i in range(0, len(num), 3))[::-1]
+
+    @staticmethod
+    def format_date(string):
+        return {'output': f'{string[8:10]}.{string[5:7]}.{string[0:4]}',
+                'time': datetime.strptime(string[:-5], "%Y-%m-%dT%H:%M:%S")}
+
     @staticmethod
     def get_split_count(string, sep):
         if string == '':
@@ -107,6 +170,22 @@ class Vacancy:
 
 
 class DataSet:
+    sorting = {
+        'Название': lambda x: x.name,
+        'Описание': lambda x: x.description,
+        'Компания': lambda x: x.employer_name,
+        'Навыки': lambda x: len(x.key_skills),
+        'Опыт работы': lambda x: Dicts.experience_in_numbers[x.experience_id],
+        'Премиум-вакансия': lambda x: x.premium,
+        'Оклад': lambda x: math.floor(
+            (int(Utils.cut_frac(x.salary.salary_from)) + int(Utils.cut_frac(x.salary.salary_to))) / 2) *
+                           Dicts.currency_to_rub[x.salary.salary_currency],
+        'Название региона': lambda x: x.area_name,
+        'Дата публикации вакансии': lambda x: Utils.format_date(x.published_at)['time'],
+        'Идентификатор валюты оклада': lambda x: x.salary.salary_currency,
+        'Оклад указан до вычета налогов': lambda x: x.salary.salary_gross
+    }
+
     def __init__(self, file_name):
         self.file_name = file_name
         self.vacancies_objects = []
@@ -152,6 +231,129 @@ class DataSet:
     def length(self):
         return len(self.vacancies_objects)
 
+    def sort(self, sorting_criteria, is_reversed):
+        is_reversed = is_reversed == 'Да'
+        self.vacancies_objects.sort(key=self.sorting[sorting_criteria], reverse=is_reversed)
+
+    @staticmethod
+    def format_filter_criteria(filter_criteria):
+        filter_criteria = filter_criteria.split(': ')
+        return {
+            'label': filter_criteria[0] if filter_criteria[0] not in Dicts.dic_naming.keys() else Dicts.dic_naming[
+                filter_criteria[0]],
+            'content': '' if filter_criteria[0] == '' else (
+                filter_criteria[1] if filter_criteria[1] not in Dicts.dic_naming.keys() else Dicts.dic_naming[
+                    filter_criteria[1]])
+        }
+
+    def filter(self, filter_criteria):
+        filter_criteria = self.format_filter_criteria(filter_criteria)
+        filtering = {
+            '': lambda x: True,
+            'Название': lambda x: x.name == filter_criteria['content'],
+            'Описание': lambda x: x.description == filter_criteria['content'],
+            'Компания': lambda x: x.employer_name == filter_criteria['content'],
+            'Навыки': lambda x: set(filter_criteria['content'].split(', ')).issubset(x.key_skills),
+            'Опыт работы': lambda x: Dicts.dic_naming[x.experience_id] == filter_criteria['content'],
+            'Премиум-вакансия': lambda x: Dicts.dic_naming[x.premium] == filter_criteria['content'],
+            'Оклад': lambda x: int(Utils.cut_frac(x.salary.salary_from)) <= int(filter_criteria['content']) <= int(
+                Utils.cut_frac(x.salary.salary_to)),
+            'Название региона': lambda x: x.area_name == filter_criteria['content'],
+            'Дата публикации вакансии': lambda x: Utils.format_date(x.published_at)['output'] == filter_criteria[
+                'content'],
+            'Идентификатор валюты оклада': lambda x: Dicts.dic_naming[x.salary.salary_currency] == filter_criteria[
+                'content'],
+            'Оклад указан до вычета налогов': lambda x: Dicts.dic_naming[x.salary.salary_gross] == filter_criteria[
+                'content']
+        }
+        self.vacancies_objects = list(filter(filtering[filter_criteria['label']], self.vacancies_objects))
+
+
+class TablePrinter:
+    possible_criteria = ['Название', 'Описание', 'Навыки', 'Опыт работы', 'Премиум-вакансия',
+                         'Компания', 'Оклад', 'Название региона', 'Дата публикации вакансии',
+                         'Идентификатор валюты оклада', 'Оклад указан до вычета налогов']
+
+    def __init__(self, data_set):
+        self.data = data_set
+        self.filter_criteria = input('Введите параметр фильтрации: ')
+        self.sorting_criteria = input('Введите параметр сортировки: ')
+        self.sort_reversed = input('Обратный порядок сортировки (Да / Нет): ')
+        self.from_to = input('Введите диапазон вывода: ')
+        self.fields = input('Введите требуемые столбцы: ')
+
+    def print_table(self, dictionary):
+        if self.filter_criteria != '' and not ':' in self.filter_criteria:
+            print('Формат ввода некорректен')
+            return
+        if self.filter_criteria.split(': ')[0] != '' and not self.filter_criteria.split(': ')[
+                                                                 0] in self.possible_criteria:
+            print('Параметр поиска некорректен')
+            return
+        if self.sorting_criteria not in self.possible_criteria and self.sorting_criteria != '':
+            print('Параметр сортировки некорректен')
+            return
+        if self.sort_reversed not in ['Да', 'Нет', '']:
+            print('Порядок сортировки задан некорректно')
+            return
+        if os.stat(self.data.file_name).st_size == 0:
+            print("Пустой файл")
+            return
+
+        if self.data.length() == 0:
+            print('Нет данных')
+            return
+        if self.sorting_criteria != '':
+            self.data.sort(self.sorting_criteria, self.sort_reversed)
+
+        self.data.filter(self.filter_criteria)
+        if len(self.data.vacancies_objects) == 0:
+            print('Ничего не найдено')
+            return
+        labels = ['№', 'Название', 'Описание', 'Навыки', 'Опыт работы', 'Премиум-вакансия',
+                  'Компания', 'Оклад', 'Название региона', 'Дата публикации вакансии']
+        table = PrettyTable(field_names=labels)
+
+        table.hrules = 1
+        table.max_width = 20
+        table.align = 'l'
+
+        for i in range(self.data.length()):
+            vacancy = self.data.vacancies_objects[i]
+            salary = vacancy.salary
+            table.add_row([
+                i + 1,
+                vacancy.name,
+                Utils.cut_string(vacancy.description),
+                Utils.cut_string('\n'.join(vacancy.key_skills)),
+                dictionary[vacancy.experience_id],
+                dictionary[vacancy.premium],
+                vacancy.employer_name,
+                f'{Utils.format_num_string(salary.salary_from)} - {Utils.format_num_string(salary.salary_to)} ({dictionary[salary.salary_currency]}) ' + (
+                    '(Без вычета налогов)' if (
+                                salary.salary_gross == 'TRUE' or salary.salary_gross == 'true' or salary.salary_gross == 'True') else '(С вычетом налогов)'),
+                vacancy.area_name,
+                Utils.format_date(vacancy.published_at)['output']
+            ])
+
+        border_variant = Utils.get_split_count(self.from_to, ' ')
+        from_to = self.from_to.split(' ')
+        fields = self.fields
+
+        cut_borders_variants = {
+            0: lambda: (0, self.data.length()),
+            1: lambda: ((int(from_to[0]) - 1), self.data.length()),
+            2: lambda: (int(from_to[0]) - 1, int(from_to[1]) - 1)
+        }
+        start = cut_borders_variants[border_variant]()[0]
+        end = cut_borders_variants[border_variant]()[1]
+        if fields != '':
+            fields = fields.split(', ')
+            fields.insert(0, '№')
+            print(table.get_string(start=start, end=end, fields=fields))
+        else:
+            print(table.get_string(start=start, end=end))
+
 
 class Stats:
     bold_font = Font(name='Cambria', size=11, bold=True)
@@ -162,10 +364,9 @@ class Stats:
         top=Side(border_style='thin', color='000000'),
         bottom=Side(border_style='thin', color='000000'),)
 
-    def __init__(self):
-        self.file_name = input('Введите название файла: ')
+    def __init__(self, data):
         self.profession = input('Введите название профессии: ')
-        self.data = DataSet(self.file_name)
+        self.data = data
         self.total_vacancies = self.data.length()
         self.year_salary_dynamics = self.get_year_salary_dynamics()
         self.num_of_vacancies_per_year = self.get_num_of_vacancies_per_year()
@@ -452,32 +653,48 @@ class Report:
         pdfkit.from_string(pdf_template, 'report.pdf', options=options, configuration=config)
 
 
-stats = Stats()
-stats.print_full_stats()
-report = Report(stats.profession,
-                stats.year_salary_dynamics,
-                stats.num_of_vacancies_per_year,
-                stats.year_salary_dynamics_for_prof,
-                stats.num_of_vacancies_per_year_for_prof,
-                stats.salary_levels_of_areas,
-                stats.vacancy_fractions_of_areas)
+def print_vacancies_table(data):
+    printer = TablePrinter(data)
+    printer.print_table(Dicts.dic_naming)
 
-Report.generate_image(
-    profession=report.profession,
-    year_salary_dynamics=report.year_salary_dynamics,
-    num_of_vacancies_per_year=report.num_of_vacancies_per_year,
-    year_salary_dynamics_for_prof=report.year_salary_dynamics_for_prof,
-    num_of_vacancies_per_year_for_prof=report.num_of_vacancies_per_year_for_prof,
-    salary_levels_of_areas=report.salary_levels_of_areas,
-    vacancy_fractions_of_areas=report.vacancy_fractions_of_areas
-)
 
-Report.generate_pdf(
-    profession=report.profession,
-    year_salary_dynamics=report.year_salary_dynamics,
-    num_of_vacancies_per_year=report.num_of_vacancies_per_year,
-    year_salary_dynamics_for_prof=report.year_salary_dynamics_for_prof,
-    num_of_vacancies_per_year_for_prof=report.num_of_vacancies_per_year_for_prof,
-    salary_levels_of_areas=report.salary_levels_of_areas,
-    vacancy_fractions_of_areas=report.vacancy_fractions_of_areas
-)
+def report_stats(data):
+    stats = Stats(data)
+    stats.print_full_stats()
+    report = Report(stats.profession,
+                    stats.year_salary_dynamics,
+                    stats.num_of_vacancies_per_year,
+                    stats.year_salary_dynamics_for_prof,
+                    stats.num_of_vacancies_per_year_for_prof,
+                    stats.salary_levels_of_areas,
+                    stats.vacancy_fractions_of_areas)
+
+    Report.generate_image(
+        profession=report.profession,
+        year_salary_dynamics=report.year_salary_dynamics,
+        num_of_vacancies_per_year=report.num_of_vacancies_per_year,
+        year_salary_dynamics_for_prof=report.year_salary_dynamics_for_prof,
+        num_of_vacancies_per_year_for_prof=report.num_of_vacancies_per_year_for_prof,
+        salary_levels_of_areas=report.salary_levels_of_areas,
+        vacancy_fractions_of_areas=report.vacancy_fractions_of_areas
+    )
+
+    Report.generate_pdf(
+        profession=report.profession,
+        year_salary_dynamics=report.year_salary_dynamics,
+        num_of_vacancies_per_year=report.num_of_vacancies_per_year,
+        year_salary_dynamics_for_prof=report.year_salary_dynamics_for_prof,
+        num_of_vacancies_per_year_for_prof=report.num_of_vacancies_per_year_for_prof,
+        salary_levels_of_areas=report.salary_levels_of_areas,
+        vacancy_fractions_of_areas=report.vacancy_fractions_of_areas
+    )
+
+
+commands = {'Вакансии': lambda data: print_vacancies_table(data),
+            'Статистика': lambda data: report_stats(data)}
+
+command = input('Введите команду: ')
+if command not in list(commands.keys()):
+    print('Неизвестная команда!')
+else:
+    commands[command](DataSet(input('Введите данные для печати: ')))
