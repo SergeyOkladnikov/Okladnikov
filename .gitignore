@@ -1,6 +1,7 @@
 /.idea
 /venv
-/vacancies_by_year.csv
-/vacancies.csv
+/vby.csv
+/v.csv
 /graph.png
 /report.pdf
+/report.xlsx
