@@ -12,7 +12,7 @@ class Salary:
     Attributes:
         salary_from (int): Нижняя граница оклада
         salary_to (int): Верхняя граница оклада
-        salary_gross (bool): Приводится ли оклад до вычета налогов
+        salary_gross (str): Приводится ли оклад до вычета налогов
         salary_currency (str): Валюта оклада
     """
     currency_to_rub = {
@@ -35,8 +35,20 @@ class Salary:
         Args:
             salary_from (str): Нижняя граница оклада
             salary_to (str): Верхняя граница оклада
-            salary_gross (bool): Приводится ли оклад до вычета налогов
+            salary_gross (str): Приводится ли оклад до вычета налогов
             salary_currency (str): Валюта оклада
+
+
+        >>> type(Salary('10000', '20000', 'True', 'RUR')).__name__
+        'Salary'
+        >>> Salary('10000.0', '20000.1', 'True', 'RUR').salary_from
+        '10000.0'
+        >>> Salary('10000.0', '20000.1', 'True', 'RUR').salary_to
+        '20000.1'
+        >>> Salary('10000.0', '20000.1', 'True', 'RUR').salary_gross
+        'True'
+        >>> Salary('10000.0', '20000.1', 'True', 'RUR').salary_currency
+        'RUR'
         """
         self.salary_from = salary_from
         self.salary_to = salary_to
@@ -49,8 +61,11 @@ class Salary:
 
         Returns:
             int: среднее арифметическое оклада
+
+        >>> Salary('200', '300', 'True', 'EUR').get_mean_salary()
+        250
         """
-        return math.floor((int(Utils.cut_frac(self.salary_from)) + int(Utils.cut_frac(self.salary_to))) / 2)
+        return int((int(Utils.cut_frac(self.salary_from)) + int(Utils.cut_frac(self.salary_to))) / 2)
 
     def get_salary_in_rur(self):
         """
@@ -58,9 +73,27 @@ class Salary:
 
         Returns:
             Salary: объект зарплаты в RUR
+
+        >>> Salary('200', '300', 'True', 'EUR').get_salary_in_rur().salary_from
+        '11980.0'
+        >>> Salary('200', '300', 'True', 'EUR').get_salary_in_rur().salary_to
+        '17970.0'
+        >>> Salary('200', '300', 'True', 'EUR').get_salary_in_rur().salary_gross
+        'True'
+        >>> Salary('200', '300', 'True', 'EUR').get_salary_in_rur().salary_currency
+        'RUR'
+
+        >>> Salary('200', '300', 'True', 'RUR').get_salary_in_rur().salary_from
+        '200.0'
+        >>> Salary('200', '300', 'True', 'RUR').get_salary_in_rur().salary_to
+        '300.0'
+        >>> Salary('200', '300', 'True', 'RUR').get_salary_in_rur().salary_gross
+        'True'
+        >>> Salary('200', '300', 'True', 'RUR').get_salary_in_rur().salary_currency
+        'RUR'
         """
-        return Salary(salary_from=str(int(Utils.cut_frac(self.salary_from)) * Salary.currency_to_rub[self.salary_currency]),
-                      salary_to=str(int(Utils.cut_frac(self.salary_to)) * Salary.currency_to_rub[self.salary_currency]),
+        return Salary(salary_from=str(float(Utils.cut_frac(self.salary_from)) * Salary.currency_to_rub[self.salary_currency]),
+                      salary_to=str(float(Utils.cut_frac(self.salary_to)) * Salary.currency_to_rub[self.salary_currency]),
                       salary_gross=self.salary_gross,
                       salary_currency='RUR')
 
@@ -105,10 +138,34 @@ class Vacancy:
             employer_name (str): Работадатель
             salary_from (str): Нижняя граница оклада
             salary_to (str): Верхняя граница оклада
-            salary_gross (bool): Приводится ли оклад до вычета налогов
+            salary_gross (str): Приводится ли оклад до вычета налогов
             salary_currency (str): Валюта оклада
             area_name (str): Название региона
             published_at (str): Дата публикации
+
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').name
+        'Инженер'
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').description
+        'Чё-то там'
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').key_skills
+        ['XXX', 'YYY']
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').experience_id
+        'between3and6'
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').premium
+        'False'
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').employer_name
+        'XYZ'
+        >>> type(Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').salary).__name__
+        'Salary'
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').area_name
+        'Екатеринбург'
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX', 'YYY'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').published_at
+        '2022-07-15T09:56:52+0300'
+
+        >>> Vacancy('Инженер', 'Чё-то там', ['XXX'], 'between3and6', 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').key_skills
+        ['XXX']
+        >>> type(Vacancy('Инженер', 'Чё-то там', None, None, 'False', 'XYZ', '200', '300', 'True', 'EUR', 'Екатеринбург', '2022-07-15T09:56:52+0300').key_skills).__name__
+        'NoneType'
         """
         self.name = name
         self.description = description
@@ -149,6 +206,31 @@ class DataSet:
 
         Args:
             file_name (str): Путь к csv-файлу
+
+        >>> type(DataSet('v.csv')).__name__
+        'DataSet'
+        >>> DataSet('v.csv').file_name
+        'v.csv'
+        >>> type(DataSet('v.csv').vacancies_objects).__name__
+        'list'
+        >>> type(DataSet('v.csv').vacancies_objects[0]).__name__
+        'Vacancy'
+        >>> type(DataSet('v.csv').vacancies_objects[0].key_skills).__name__
+        'list'
+        >>> DataSet('v.csv').vacancies_objects[0].key_skills
+        ['Организаторские навыки', 'Проведение презентаций', 'MS PowerPoint', 'Информационные технологии', 'Аналитическое мышление', 'Автоматизированное рабочее место (АРМ)', 'техническая грамотность']
+        >>> type(DataSet('test_partial.csv').vacancies_objects[0].key_skills).__name__
+        'NoneType'
+        >>> type(DataSet('test_partial.csv').vacancies_objects[0].description).__name__
+        'NoneType'
+        >>> type(DataSet('test_partial.csv').vacancies_objects[0].experience_id).__name__
+        'NoneType'
+        >>> type(DataSet('test_partial.csv').vacancies_objects[0].premium).__name__
+        'NoneType'
+        >>> type(DataSet('test_partial.csv').vacancies_objects[0].employer_name).__name__
+        'NoneType'
+        >>> type(DataSet('test_partial.csv').vacancies_objects[0].salary.salary_gross).__name__
+        'NoneType'
         """
         self.file_name = file_name
         self.vacancies_objects = []
@@ -213,7 +295,32 @@ class DataSet:
 
         Args:
             sorting_criteria (str): Критерий сортировки - название столбца - критерия
-            is_reversed (bool): При значении true сортировка происходит по убыванию
+            is_reversed (str): При значении 'Да' сортировка происходит по убыванию
+
+        >>> data = DataSet('sorting_test.csv')
+        >>> data.sort('Название', 'Нет')
+        >>> [x.name for x in data.vacancies_objects]
+        ['HTML-верстальщик', 'HTML-верстальщик (remote)', 'Information Security Policy Specialist (Methodology)', 'Senior Python Developer (Crypto)', 'Руководитель проекта по системам связи и информационным технологиям']
+        >>> data = DataSet('sorting_test.csv')
+        >>> data.sort('Навыки', 'Нет')
+        >>> [x.name for x in data.vacancies_objects]
+        ['Information Security Policy Specialist (Methodology)', 'Senior Python Developer (Crypto)', 'Руководитель проекта по системам связи и информационным технологиям', 'HTML-верстальщик (remote)', 'HTML-верстальщик']
+        >>> data = DataSet('sorting_test.csv')
+        >>> data.sort('Опыт работы', 'Нет')
+        >>> [x.name for x in data.vacancies_objects]
+        ['HTML-верстальщик', 'HTML-верстальщик (remote)', 'Руководитель проекта по системам связи и информационным технологиям', 'Senior Python Developer (Crypto)', 'Information Security Policy Specialist (Methodology)']
+        >>> data = DataSet('sorting_test.csv')
+        >>> data.sort('Оклад', 'Нет')
+        >>> [x.name for x in data.vacancies_objects]
+        ['Руководитель проекта по системам связи и информационным технологиям', 'HTML-верстальщик', 'HTML-верстальщик (remote)', 'Senior Python Developer (Crypto)', 'Information Security Policy Specialist (Methodology)']
+        >>> data = DataSet('sorting_test.csv')
+        >>> data.sort('Дата публикации вакансии', 'Нет')
+        >>> [x.name for x in data.vacancies_objects]
+        ['Senior Python Developer (Crypto)', 'HTML-верстальщик', 'HTML-верстальщик (remote)', 'Information Security Policy Specialist (Methodology)', 'Руководитель проекта по системам связи и информационным технологиям']
+        >>> data = DataSet('sorting_test.csv')
+        >>> data.sort('Название', 'Да')
+        >>> [x.name for x in data.vacancies_objects]
+        ['Руководитель проекта по системам связи и информационным технологиям', 'Senior Python Developer (Crypto)', 'Information Security Policy Specialist (Methodology)', 'HTML-верстальщик (remote)', 'HTML-верстальщик']
         """
 
         is_reversed = is_reversed == 'Да'
@@ -297,3 +404,8 @@ class DataSet:
                 'content']
         }
         return list(filter(filtering[filter_criteria['label']], self.vacancies_objects))
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
